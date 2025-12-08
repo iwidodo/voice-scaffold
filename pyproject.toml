@@ -1,0 +1,18 @@
+[project]
+name = "voice-scaffold"
+version = "0.1.0"
+description = "Minimal voice I/O for agent interviews"
+requires-python = ">=3.10"
+dependencies = [
+    "deepgram-sdk>=3.0",
+    "python-dotenv",
+    "pydub",
+    "simpleaudio",
+    "sounddevice",
+    "numpy",
+    "pynput",
+    "openai>=2.9.0",
+]
+
+[dependency-groups]
+dev = []
