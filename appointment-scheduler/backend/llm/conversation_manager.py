@@ -211,7 +211,7 @@ IMPORTANT:
 Always confirm key details before creating an appointment."""
         
         if state == ConversationState.INITIAL:
-            return base_prompt + "\n\nThe conversation is just starting. Greet the patient and ask how you can help."
+            return base_prompt + "\n\nThe conversation is just starting. Introduce yourself as an AI booking assistant from Hippocratic AI, then ask how you can help with scheduling their appointment."
         
         elif state == ConversationState.ISSUE_IDENTIFIED:
             return base_prompt + "\n\nYou've identified the patient's health issue. Use identify_provider to find the right doctor."
