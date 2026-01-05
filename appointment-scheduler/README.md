@@ -28,6 +28,127 @@ appointment-scheduler/
 └── run_local.sh         # Development server script
 ```
 
+## Backend Process Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    User Input (Voice/Text)                      │
+│              "I need a dental cleaning tomorrow"                │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  POST /api/conversation/                        │
+│  • Creates/resumes conversation                                 │
+│  • Adds user message to history                                 │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              ConversationManager.get_system_prompt()            │
+│  • Injects current date/time                                    │
+│  • Provides state-specific instructions                         │
+│  • Voice formatting rules (no parentheses)                      │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              OpenAI GPT-4o-mini (Function Calling)              │
+│  • Analyzes user intent                                         │
+│  • Decides which function to call                               │
+│  • Returns function call OR text response                       │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+              ┌──────────────┴──────────────┐
+              │                             │
+              ▼                             ▼
+   ┌──────────────────┐         ┌──────────────────────┐
+   │  Function Call   │         │   Text Response      │
+   │  Required        │         │   (No more tools)    │
+   └────────┬─────────┘         └──────────┬───────────┘
+            │                              │
+            ▼                              │
+┌───────────────────────────────────────┐  │
+│  execute_function()                   │  │
+│  ┌─────────────────────────────────┐ │  │
+│  │ identify_provider()             │ │  │
+│  │ • Match specialty to keywords   │ │  │
+│  │ • Query providers.csv           │ │  │
+│  │ • Return provider details       │ │  │
+│  └─────────────────────────────────┘ │  │
+│  ┌─────────────────────────────────┐ │  │
+│  │ check_availability()            │ │  │
+│  │ • Query schedules.csv           │ │  │
+│  │ • Filter by date/time           │ │  │
+│  │ • Return available slots        │ │  │
+│  └─────────────────────────────────┘ │  │
+│  ┌─────────────────────────────────┐ │  │
+│  │ create_appointment()            │ │  │
+│  │ • Book slot in schedules.csv    │ │  │
+│  │ • Save to CSV (persist)         │ │  │
+│  │ • Generate .ics calendar file   │ │  │
+│  └─────────────────────────────────┘ │  │
+└───────────────┬───────────────────────┘  │
+                │                          │
+                ▼                          │
+   ┌──────────────────────┐                │
+   │  Function Result     │                │
+   │  Added to Messages   │                │
+   └──────────┬───────────┘                │
+              │                            │
+              └──────────┬─────────────────┘
+                         │
+                         ▼
+              ┌──────────────────────┐
+              │  Loop: Max 5 times   │
+              │  (Function chaining) │
+              └──────────┬───────────┘
+                         │
+                         ▼
+              ┌──────────────────────┐
+              │  LLM called again    │
+              │  with function result│
+              └──────────┬───────────┘
+                         │
+                         ▼
+         ┌───────────────────────────────┐
+         │  Final Text Response          │
+         │  "Dr. White has slots at..."  │
+         └───────────────┬───────────────┘
+                         │
+                         ▼
+         ┌───────────────────────────────┐
+         │  Update conversation state    │
+         │  • initial → provider_matched │
+         │  • provider_matched → avail.. │
+         │  • ... → appointment_confirmed│
+         └───────────────┬───────────────┘
+                         │
+                         ▼
+         ┌───────────────────────────────┐
+         │  Return JSON Response         │
+         │  {                            │
+         │    "response": "...",         │
+         │    "state": "...",            │
+         │    "suggestions": [...]       │
+         │  }                            │
+         └───────────────┬───────────────┘
+                         │
+                         ▼
+         ┌───────────────────────────────┐
+         │  Voice/UI displays response   │
+         │  (TTS speaks it out)          │
+         └───────────────────────────────┘
+```
+
+### Key Components
+
+1. **Conversation Manager**: Maintains state and generates context-aware prompts
+2. **LLM Client**: Handles OpenAI API calls with function calling
+3. **Function Loop**: Chains multiple function calls (up to 5 iterations)
+4. **CSV Database**: Persistent storage with in-memory caching
+5. **State Machine**: Tracks conversation progress (initial → confirmed)
+
 ## Quick Start
 
 ### 1. Install Dependencies

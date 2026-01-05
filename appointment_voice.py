@@ -63,12 +63,12 @@ class VoiceAppointmentScheduler:
                 volume = sum(abs(int.from_bytes(data[i:i+2], 'little', signed=True)) 
                            for i in range(0, len(data), 2)) / (len(data) / 2)
                 
-                if volume > 500:  # Speaking detected
+                if volume > 300:  # Speaking detected (lowered from 500 for more sensitivity)
                     started_speaking = True
                     silent_chunks = 0
                 elif started_speaking:
                     silent_chunks += 1
-                    if silent_chunks > 60:  # About 3 seconds of silence (increased from 1 second)
+                    if silent_chunks > 100:  # About 5 seconds of silence for longer pauses
                         break
                 
                 # Max recording time safety
