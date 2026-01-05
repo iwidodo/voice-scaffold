@@ -2,6 +2,24 @@
 
 Minimal voice I/O wrapper for agent engineering interviews. Add voice to any agent in minutes.
 
+## What's Included
+
+### 1. Voice Scaffold (Root)
+Simple voice I/O wrapper for adding speech-to-text and text-to-speech to any agent.
+
+### 2. Appointment Scheduler ([`appointment-scheduler/`](appointment-scheduler/))
+**Complete LLM-powered appointment scheduling system** - a reference implementation showing:
+- Multi-turn conversation with OpenAI function calling
+- Provider matching based on health issues
+- Schedule management and availability checking
+- Appointment creation with .ics calendar file generation
+- RESTful API with FastAPI
+- Comprehensive test suite
+
+See [`appointment-scheduler/README.md`](appointment-scheduler/README.md) for full documentation.
+
+---
+
 ## What This Does
 
 ```
@@ -286,3 +304,82 @@ Make sure your microphone is working and permissions are granted.
 
 ### TTS not playing
 Install ffmpeg for pydub: `brew install ffmpeg` (macOS)
+
+---
+
+## Appointment Scheduler Example
+
+The [`appointment-scheduler/`](appointment-scheduler/) directory contains a complete reference implementation of an LLM-powered appointment scheduling system.
+
+### Features
+
+- **LLM-Powered Conversations**: Multi-turn conversations using OpenAI function calling
+- **Smart Provider Matching**: Automatically matches health issues to appropriate medical specialists
+- **Schedule Management**: Real-time availability checking and booking
+- **Calendar Integration**: Generates .ics files for calendar imports
+- **RESTful API**: FastAPI backend with comprehensive endpoints
+- **Full Test Coverage**: 39+ tests covering all components
+
+### Quick Start
+
+```bash
+cd appointment-scheduler
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up environment
+cp .env.example .env
+# Edit .env and add your OPENAI_API_KEY
+
+# Run examples
+python example_usage.py
+
+# Start the API server
+./run_local.sh
+# API docs at http://localhost:8000/docs
+```
+
+### Example Usage
+
+```python
+# Provider matching
+from backend.llm.provider_matcher import match_provider_for_issue
+
+match = match_provider_for_issue("I have a rash")
+# → Dr. Sarah Johnson (Dermatologist)
+
+# Create appointment
+appointment_data = {
+    "patient_name": "John Doe",
+    "provider_id": "p001",
+    "date": "2026-01-20",
+    "time": "10:00",
+    "reason": "Skin checkup"
+}
+# Returns appointment with .ics calendar file
+```
+
+### Architecture
+
+- **Backend**: FastAPI with Pydantic validation
+- **LLM**: OpenAI GPT-4o-mini with function calling
+- **Data**: Mock providers and schedules (easily replaceable)
+- **Testing**: pytest with comprehensive coverage
+
+See the [full documentation](appointment-scheduler/README.md) for detailed API reference, conversation flows, and integration examples.
+
+---
+
+## Future Integration
+
+The appointment scheduler is designed as a standalone API that can be integrated with the voice scaffold:
+
+```python
+from cli import run_ptt_loop
+from appointment_scheduler_agent import chat  # Your integration
+
+run_ptt_loop(chat)  # Voice-enabled appointment booking!
+```
+
+This demonstrates the full stack: voice I/O → LLM agent → business logic → structured output.
