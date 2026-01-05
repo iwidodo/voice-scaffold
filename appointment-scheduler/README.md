@@ -64,7 +64,22 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 The API will be available at `http://localhost:8000`
 
-### 4. View API Documentation
+### 4. Run the Streamlit UI (Optional)
+
+For a user-friendly chat interface, run the Streamlit UI in a separate terminal:
+
+```bash
+# Make sure the backend is running first (step 3)
+# Then in a new terminal:
+./run_streamlit.sh
+
+# Or manually:
+streamlit run streamlit_app.py
+```
+
+The Streamlit UI will open in your browser at `http://localhost:8501`
+
+### 5. View API Documentation
 
 Open your browser to:
 - Swagger UI: `http://localhost:8000/docs`
@@ -72,7 +87,22 @@ Open your browser to:
 
 ## Usage Examples
 
-### Example 1: Conversation API (Recommended)
+### Example 1: Using the Streamlit UI (Recommended for Users)
+
+The easiest way to interact with the system is through the Streamlit chat interface:
+
+1. Start the backend: `./run_local.sh`
+2. In a new terminal, start Streamlit: `./run_streamlit.sh`
+3. Open your browser to `http://localhost:8501`
+4. Chat naturally with the AI assistant to book appointments
+
+Features:
+- 💬 Natural conversation interface
+- 🔄 Conversation history management
+- 💡 Contextual suggestions
+- 🏥 Real-time appointment booking
+
+### Example 2: Conversation API (Programmatic Access)
 
 The conversation endpoint provides an LLM-powered interface that handles the entire flow:
 
@@ -98,7 +128,7 @@ print(response.json()["response"])
 # The LLM will show available times
 ```
 
-### Example 2: Direct API Usage
+### Example 3: Direct API Usage
 
 You can also use the appointment API directly:
 
