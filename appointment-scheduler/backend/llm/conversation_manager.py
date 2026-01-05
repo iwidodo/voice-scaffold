@@ -181,6 +181,13 @@ Use the provided functions to:
 - check_availability: Look up available appointment times
 - create_appointment: Book the appointment once all details are confirmed
 
+IMPORTANT: 
+- If a function returns an error (like no providers available or no time slots), you MUST communicate this clearly to the user.
+- Never stay silent when a function call fails or returns no results.
+- If no providers are available for a specialty, apologize and suggest alternatives (like seeing a General Practitioner).
+- If no time slots are available, offer to check other dates or suggest contacting the office directly.
+- Always provide helpful next steps when something isn't available.
+
 Always confirm key details before creating an appointment."""
         
         if state == ConversationState.INITIAL:

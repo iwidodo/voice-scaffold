@@ -24,6 +24,7 @@ class Specialty(str, Enum):
     PSYCHIATRIST = "Psychiatrist"
     OPHTHALMOLOGIST = "Ophthalmologist"
     ENT_SPECIALIST = "ENT Specialist"
+    DENTIST = "Dentist"
 
 
 # Mapping of health issues to specialties
@@ -82,6 +83,16 @@ ISSUE_TO_SPECIALTY = {
     "nose": Specialty.ENT_SPECIALIST,
     "sinus": Specialty.ENT_SPECIALIST,
     "hearing": Specialty.ENT_SPECIALIST,
+    
+    # Dental issues
+    "teeth": Specialty.DENTIST,
+    "tooth": Specialty.DENTIST,
+    "dental": Specialty.DENTIST,
+    "dentist": Specialty.DENTIST,
+    "cavity": Specialty.DENTIST,
+    "cleaning": Specialty.DENTIST,
+    "gum": Specialty.DENTIST,
+    "toothache": Specialty.DENTIST,
 }
 
 

@@ -179,7 +179,11 @@ async def execute_function(
         
         if not match:
             logger.warning(f"[conversation.py.execute_function] No suitable provider found for issue: {health_issue}")
-            return {"error": "No suitable provider found"}
+            return {
+                "error": "No suitable provider found",
+                "message": f"I apologize, but we don't currently have specialists available for '{health_issue}'. Our available specialties include: General Practitioner, Dermatologist, Cardiologist, Neurologist, Orthopedist, Pediatrician, Psychiatrist, Ophthalmologist, ENT Specialist, and Dentist. Would you like to see a General Practitioner who can help with most health concerns?",
+                "available_specialties": ["General Practitioner", "Dermatologist", "Cardiologist", "Neurologist", "Orthopedist", "Pediatrician", "Psychiatrist", "Ophthalmologist", "ENT Specialist", "Dentist"]
+            }
         
         logger.info(f"[conversation.py.execute_function] Provider matched: {match.provider_name} (ID: {match.provider_id})")
         
@@ -218,7 +222,13 @@ async def execute_function(
         
         if not availability:
             logger.warning(f"[conversation.py.execute_function] No available slots found for provider: {provider_id}")
-            return {"error": "No available slots found"}
+            provider = get_provider_by_id(provider_id)
+            provider_name = provider.name if provider else "this provider"
+            return {
+                "error": "No available slots found",
+                "message": f"I apologize, but {provider_name} doesn't have any available appointment slots in the next {num_days} days. Would you like me to check availability for a different time period, or would you prefer to see another provider with the same specialty?",
+                "provider_id": provider_id
+            }
         
         logger.info(f"[conversation.py.execute_function] Found availability for {len(availability)} dates")
         
