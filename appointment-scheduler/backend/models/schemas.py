@@ -44,7 +44,7 @@ class Appointment(BaseModel):
     time: str
     location: str
     reason: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now())
 
 
 # Conversation Models

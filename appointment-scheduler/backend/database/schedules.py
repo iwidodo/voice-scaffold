@@ -22,6 +22,9 @@ def generate_mock_schedule(provider_id: str, days_ahead: int = 14) -> List[Sched
     schedules = []
     today = datetime.now().date()
     
+    # Use provider_id as seed for consistent but varied schedules per provider
+    random.seed(hash(provider_id))
+    
     for day_offset in range(1, days_ahead + 1):
         date = today + timedelta(days=day_offset)
         date_str = date.strftime("%Y-%m-%d")
@@ -30,9 +33,9 @@ def generate_mock_schedule(provider_id: str, days_ahead: int = 14) -> List[Sched
         if date.weekday() >= 5:
             continue
         
-        # Randomly remove some slots to simulate bookings
+        # Randomly remove some slots to simulate bookings (but keep most slots available)
         available_slots = STANDARD_TIME_SLOTS.copy()
-        num_booked = random.randint(2, 6)
+        num_booked = random.randint(2, 4)  # Book fewer slots
         for _ in range(num_booked):
             if available_slots:
                 available_slots.pop(random.randint(0, len(available_slots) - 1))
@@ -42,6 +45,9 @@ def generate_mock_schedule(provider_id: str, days_ahead: int = 14) -> List[Sched
             date=date_str,
             available_slots=available_slots
         ))
+    
+    # Reset random seed
+    random.seed()
     
     return schedules
 

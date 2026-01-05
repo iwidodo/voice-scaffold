@@ -51,10 +51,14 @@ ISSUE_TO_SPECIALTY = {
     
     # Bone/joint issues
     "back pain": Specialty.ORTHOPEDIST,
+    "back": Specialty.ORTHOPEDIST,
     "joint pain": Specialty.ORTHOPEDIST,
+    "joint": Specialty.ORTHOPEDIST,
     "fracture": Specialty.ORTHOPEDIST,
     "arthritis": Specialty.ORTHOPEDIST,
     "sprain": Specialty.ORTHOPEDIST,
+    "knee": Specialty.ORTHOPEDIST,
+    "shoulder": Specialty.ORTHOPEDIST,
     
     # Children's issues
     "child": Specialty.PEDIATRICIAN,

@@ -86,7 +86,7 @@ def generate_ics_file(appointment: Appointment) -> bytes:
     
     event.add('dtstart', start_datetime)
     event.add('dtend', end_datetime)
-    event.add('dtstamp', datetime.utcnow())
+    event.add('dtstamp', datetime.now())
     
     # Add description
     description = f"Patient: {appointment.patient_name}\n"

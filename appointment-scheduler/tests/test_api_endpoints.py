@@ -4,7 +4,7 @@ Tests for API endpoints.
 import pytest
 from fastapi.testclient import TestClient
 from backend.main import app
-from backend.database.schedules import clear_schedule_cache
+from backend.database.schedules import clear_schedule_cache, get_provider_schedule
 
 client = TestClient(app)
 
@@ -15,6 +15,15 @@ def reset_schedules():
     clear_schedule_cache()
     yield
     clear_schedule_cache()
+
+
+def get_available_date_and_time(provider_id: str):
+    """Helper to get an available date and time for testing."""
+    schedules = get_provider_schedule(provider_id, days_ahead=14)
+    for schedule in schedules:
+        if schedule.available_slots:
+            return schedule.date, schedule.available_slots[0]
+    raise ValueError(f"No available slots found for provider {provider_id}")
 
 
 def test_root_endpoint():
@@ -35,11 +44,13 @@ def test_health_check():
 
 def test_create_appointment_endpoint():
     """Test appointment creation endpoint."""
+    date, time = get_available_date_and_time("p001")
+    
     appointment_data = {
         "patient_name": "John Doe",
         "provider_id": "p001",
-        "date": "2026-01-20",
-        "time": "10:00",
+        "date": date,
+        "time": time,
         "reason": "Checkup"
     }
     
@@ -66,12 +77,14 @@ def test_create_appointment_invalid_provider():
 
 def test_get_appointment_endpoint():
     """Test getting an appointment."""
+    date, time = get_available_date_and_time("p002")
+    
     # First create an appointment
     appointment_data = {
         "patient_name": "Bob Johnson",
         "provider_id": "p002",
-        "date": "2026-01-22",
-        "time": "14:00"
+        "date": date,
+        "time": time
     }
     
     create_response = client.post("/api/appointments/", json=appointment_data)
@@ -95,12 +108,22 @@ def test_get_nonexistent_appointment():
 def test_list_appointments_endpoint():
     """Test listing all appointments."""
     # Create a couple of appointments
-    for i in range(2):
+    schedules = get_provider_schedule("p001", days_ahead=14)
+    available_times = []
+    for schedule in schedules:
+        if len(schedule.available_slots) >= 2:
+            available_times = [(schedule.date, schedule.available_slots[0]),
+                             (schedule.date, schedule.available_slots[1])]
+            break
+    
+    assert len(available_times) >= 2, "Need at least 2 available slots"
+    
+    for i, (date, time) in enumerate(available_times):
         appointment_data = {
             "patient_name": f"Patient {i}",
             "provider_id": "p001",
-            "date": "2026-01-25",
-            "time": f"{9 + i}:00"
+            "date": date,
+            "time": time
         }
         client.post("/api/appointments/", json=appointment_data)
     
@@ -114,12 +137,14 @@ def test_list_appointments_endpoint():
 
 def test_download_ics_file():
     """Test downloading .ics file."""
+    date, time = get_available_date_and_time("p003")
+    
     # Create appointment
     appointment_data = {
         "patient_name": "Alice Brown",
         "provider_id": "p003",
-        "date": "2026-02-01",
-        "time": "11:00"
+        "date": date,
+        "time": time
     }
     
     create_response = client.post("/api/appointments/", json=appointment_data)
