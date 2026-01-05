@@ -84,10 +84,14 @@ async def handle_conversation(request: ConversationRequest):
     assistant_message = response.choices[0].message
     tool_calls = llm_client.extract_tool_calls(response)
     
-    # Handle function calls
-    function_results = []
-    if tool_calls:
-        logger.info(f"[conversation.py.handle_conversation] Processing {len(tool_calls)} tool calls")
+    # Handle function calls - loop until we get a text response
+    max_iterations = 5  # Prevent infinite loops
+    iteration = 0
+    
+    while tool_calls and iteration < max_iterations:
+        iteration += 1
+        logger.info(f"[conversation.py.handle_conversation] Processing {len(tool_calls)} tool calls (iteration {iteration})")
+        
         for tool_call in tool_calls:
             func_name = tool_call["function"]
             func_args = json.loads(tool_call["arguments"])
@@ -99,7 +103,6 @@ async def handle_conversation(request: ConversationRequest):
                 conversation_id,
                 conversation_manager
             )
-            function_results.append(result)
             logger.debug(f"[conversation.py.handle_conversation] Function {func_name} result: {result}")
             
             # Add function result to messages for next LLM call
@@ -123,24 +126,29 @@ async def handle_conversation(request: ConversationRequest):
                 "content": json.dumps(result)
             })
         
-        # Get final response after function execution
-        logger.debug("[conversation.py.handle_conversation] Getting final LLM response after function execution")
-        final_response = llm_client.chat_completion(full_messages, tools=tools)
-        assistant_content = llm_client.extract_message_content(final_response)
+        # Get response after function execution
+        logger.debug(f"[conversation.py.handle_conversation] Getting LLM response after function execution (iteration {iteration})")
+        response = llm_client.chat_completion(full_messages, tools=tools)
+        tool_calls = llm_client.extract_tool_calls(response)
         
-        # If content is empty after function calls, check if there are more tool calls
-        if not assistant_content and final_response.choices[0].message.tool_calls:
-            logger.warning("[conversation.py.handle_conversation] LLM made additional tool calls without text response")
-            # For now, return a message indicating processing
-            assistant_content = "I'm processing your request. Let me check the available options for you."
-        elif not assistant_content:
-            logger.warning("[conversation.py.handle_conversation] Empty response after function execution")
-            assistant_content = "I've processed your request. How else can I help you?"
-        
-        logger.info(f"[conversation.py.handle_conversation] Final assistant response length: {len(assistant_content)}")
-    else:
+        # If there are no more tool calls, extract the message
+        if not tool_calls:
+            assistant_content = llm_client.extract_message_content(response)
+            break
+    
+    # Handle case where we hit max iterations
+    if iteration >= max_iterations:
+        logger.warning("[conversation.py.handle_conversation] Hit max iterations for tool calls")
+        assistant_content = "I've processed your request. How can I help you further?"
+    elif not tool_calls:
+        # No tool calls from the start
         logger.debug("[conversation.py.handle_conversation] No tool calls, using direct response")
         assistant_content = llm_client.extract_message_content(response)
+    
+    # Handle empty content
+    if not assistant_content or assistant_content.strip() == "":
+        logger.warning("[conversation.py.handle_conversation] Empty response after processing")
+        assistant_content = "I've processed your request. How else can I help you?"
     
     # Add assistant message
     conversation_manager.add_message(conversation_id, "assistant", assistant_content)
