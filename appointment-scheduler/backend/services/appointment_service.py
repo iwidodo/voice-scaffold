@@ -2,6 +2,7 @@
 Appointment service for creating appointments and generating .ics files.
 """
 import uuid
+import logging
 from datetime import datetime, timedelta
 from typing import Optional
 from icalendar import Calendar, Event
@@ -9,6 +10,7 @@ from backend.models.schemas import Appointment, AppointmentCreate, AppointmentCo
 from backend.database.providers import get_provider_by_id
 from backend.database.schedules import book_slot
 
+logger = logging.getLogger(__name__)
 
 # In-memory appointment storage (would be a database in production)
 _APPOINTMENTS_DB = {}
@@ -24,9 +26,14 @@ def create_appointment(appointment_data: AppointmentCreate) -> Optional[Appointm
     Returns:
         Created Appointment object or None if provider not found
     """
+    logger.info(f"[appointment_service.py.create_appointment] Creating appointment for patient: {appointment_data.patient_name}, provider: {appointment_data.provider_id}")
+    
     provider = get_provider_by_id(appointment_data.provider_id)
     if not provider:
+        logger.error(f"[appointment_service.py.create_appointment] Provider not found: {appointment_data.provider_id}")
         return None
+    
+    logger.debug(f"[appointment_service.py.create_appointment] Provider found: {provider.name}")
     
     # Book the slot
     success = book_slot(
@@ -36,7 +43,10 @@ def create_appointment(appointment_data: AppointmentCreate) -> Optional[Appointm
     )
     
     if not success:
+        logger.warning(f"[appointment_service.py.create_appointment] Failed to book slot for {appointment_data.date} at {appointment_data.time}")
         return None
+    
+    logger.debug(f"[appointment_service.py.create_appointment] Slot booked successfully")
     
     # Create appointment
     appointment_id = str(uuid.uuid4())
@@ -52,6 +62,8 @@ def create_appointment(appointment_data: AppointmentCreate) -> Optional[Appointm
     )
     
     _APPOINTMENTS_DB[appointment_id] = appointment
+    logger.info(f"[appointment_service.py.create_appointment] Appointment created successfully: {appointment_id}")
+    
     return appointment
 
 
@@ -65,6 +77,8 @@ def generate_ics_file(appointment: Appointment) -> bytes:
     Returns:
         .ics file content as bytes
     """
+    logger.info(f"[appointment_service.py.generate_ics_file] Generating ICS file for appointment: {appointment.id}")
+    
     cal = Calendar()
     cal.add('prodid', '-//Appointment Scheduler//EN')
     cal.add('version', '2.0')
@@ -97,7 +111,10 @@ def generate_ics_file(appointment: Appointment) -> bytes:
     
     cal.add_component(event)
     
-    return cal.to_ical()
+    ics_bytes = cal.to_ical()
+    logger.debug(f"[appointment_service.py.generate_ics_file] ICS file generated successfully (size: {len(ics_bytes)} bytes)")
+    
+    return ics_bytes
 
 
 def create_appointment_with_ics(
@@ -112,8 +129,11 @@ def create_appointment_with_ics(
     Returns:
         AppointmentConfirmation with .ics file or None if creation failed
     """
+    logger.info(f"[appointment_service.py.create_appointment_with_ics] Creating appointment with ICS for patient: {appointment_data.patient_name}")
+    
     appointment = create_appointment(appointment_data)
     if not appointment:
+        logger.error(f"[appointment_service.py.create_appointment_with_ics] Failed to create appointment")
         return None
     
     ics_bytes = generate_ics_file(appointment)
@@ -121,6 +141,8 @@ def create_appointment_with_ics(
     # Convert to base64 for JSON transmission
     import base64
     ics_base64 = base64.b64encode(ics_bytes).decode('utf-8')
+    
+    logger.info(f"[appointment_service.py.create_appointment_with_ics] Appointment with ICS created successfully: {appointment.id}")
     
     return AppointmentConfirmation(
         appointment_id=appointment.id,
@@ -135,9 +157,18 @@ def create_appointment_with_ics(
 
 def get_appointment(appointment_id: str) -> Optional[Appointment]:
     """Get an appointment by ID."""
-    return _APPOINTMENTS_DB.get(appointment_id)
+    logger.debug(f"[appointment_service.py.get_appointment] Retrieving appointment: {appointment_id}")
+    appointment = _APPOINTMENTS_DB.get(appointment_id)
+    
+    if appointment:
+        logger.debug(f"[appointment_service.py.get_appointment] Appointment found: {appointment_id}")
+    else:
+        logger.warning(f"[appointment_service.py.get_appointment] Appointment not found: {appointment_id}")
+    
+    return appointment
 
 
 def get_all_appointments() -> list:
     """Get all appointments."""
+    logger.debug(f"[appointment_service.py.get_all_appointments] Retrieving all appointments (count: {len(_APPOINTMENTS_DB)})")
     return list(_APPOINTMENTS_DB.values())

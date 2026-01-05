@@ -1,10 +1,12 @@
 """
 Mock provider database.
 """
+import logging
 from typing import List, Optional
 from backend.models.schemas import Provider
 from backend.models.constants import Specialty
 
+logger = logging.getLogger(__name__)
 
 # Mock provider data
 PROVIDERS_DB = [
@@ -93,25 +95,43 @@ PROVIDERS_DB = [
 
 def get_all_providers() -> List[Provider]:
     """Get all providers."""
+    logger.debug(f"[providers.py.get_all_providers] Retrieving all providers (count: {len(PROVIDERS_DB)})")
     return PROVIDERS_DB
 
 
 def get_provider_by_id(provider_id: str) -> Optional[Provider]:
     """Get a provider by ID."""
+    logger.debug(f"[providers.py.get_provider_by_id] Looking up provider: {provider_id}")
+    
     for provider in PROVIDERS_DB:
         if provider.id == provider_id:
+            logger.debug(f"[providers.py.get_provider_by_id] Provider found: {provider.name}")
             return provider
+    
+    logger.warning(f"[providers.py.get_provider_by_id] Provider not found: {provider_id}")
     return None
 
 
 def get_providers_by_specialty(specialty: str) -> List[Provider]:
     """Get providers by specialty."""
-    return [p for p in PROVIDERS_DB if p.specialty == specialty]
+    logger.debug(f"[providers.py.get_providers_by_specialty] Searching for providers with specialty: {specialty}")
+    
+    providers = [p for p in PROVIDERS_DB if p.specialty == specialty]
+    logger.debug(f"[providers.py.get_providers_by_specialty] Found {len(providers)} providers with specialty: {specialty}")
+    
+    return providers
 
 
 def get_best_provider_for_specialty(specialty: str) -> Optional[Provider]:
     """Get the best-rated provider for a specialty."""
+    logger.debug(f"[providers.py.get_best_provider_for_specialty] Finding best provider for specialty: {specialty}")
+    
     providers = get_providers_by_specialty(specialty)
     if not providers:
+        logger.warning(f"[providers.py.get_best_provider_for_specialty] No providers found for specialty: {specialty}")
         return None
-    return max(providers, key=lambda p: (p.rating, p.experience_years))
+    
+    best_provider = max(providers, key=lambda p: (p.rating, p.experience_years))
+    logger.info(f"[providers.py.get_best_provider_for_specialty] Best provider for {specialty}: {best_provider.name} (rating: {best_provider.rating})")
+    
+    return best_provider

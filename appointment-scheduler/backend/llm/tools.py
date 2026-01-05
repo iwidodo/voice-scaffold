@@ -1,6 +1,9 @@
 """
 Function tools definitions for LLM function calling.
 """
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_function_tools():
@@ -10,7 +13,9 @@ def get_function_tools():
     Returns:
         List of tool definitions
     """
-    return [
+    logger.debug("[tools.py.get_function_tools] Retrieving function tools for LLM")
+    
+    tools = [
         {
             "type": "function",
             "function": {
@@ -92,3 +97,6 @@ def get_function_tools():
             }
         }
     ]
+    
+    logger.debug(f"[tools.py.get_function_tools] Returning {len(tools)} function tools")
+    return tools

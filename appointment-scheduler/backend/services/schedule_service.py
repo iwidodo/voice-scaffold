@@ -1,10 +1,13 @@
 """
 Schedule service for handling availability queries.
 """
+import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 from backend.database.schedules import get_provider_schedule, get_available_slots
 from backend.models.schemas import Schedule
+
+logger = logging.getLogger(__name__)
 
 
 def get_next_available_dates(provider_id: str, num_dates: int = 5) -> List[str]:
@@ -18,6 +21,8 @@ def get_next_available_dates(provider_id: str, num_dates: int = 5) -> List[str]:
     Returns:
         List of dates in YYYY-MM-DD format
     """
+    logger.info(f"[schedule_service.py.get_next_available_dates] Getting next {num_dates} available dates for provider: {provider_id}")
+    
     schedules = get_provider_schedule(provider_id)
     available_dates = []
     
@@ -27,6 +32,7 @@ def get_next_available_dates(provider_id: str, num_dates: int = 5) -> List[str]:
             if len(available_dates) >= num_dates:
                 break
     
+    logger.debug(f"[schedule_service.py.get_next_available_dates] Found {len(available_dates)} available dates")
     return available_dates
 
 
@@ -41,6 +47,8 @@ def get_availability_summary(provider_id: str, num_days: int = 7) -> Dict[str, L
     Returns:
         Dictionary mapping dates to available time slots
     """
+    logger.info(f"[schedule_service.py.get_availability_summary] Getting availability summary for provider: {provider_id}, days: {num_days}")
+    
     schedules = get_provider_schedule(provider_id, days_ahead=num_days)
     summary = {}
     
@@ -48,6 +56,7 @@ def get_availability_summary(provider_id: str, num_days: int = 7) -> Dict[str, L
         if schedule.available_slots:
             summary[schedule.date] = schedule.available_slots
     
+    logger.debug(f"[schedule_service.py.get_availability_summary] Found availability for {len(summary)} dates")
     return summary
 
 
@@ -67,6 +76,9 @@ def find_common_availability(
     Returns:
         Dictionary mapping dates to available time slots that match preferences
     """
+    logger.info(f"[schedule_service.py.find_common_availability] Finding common availability for provider: {provider_id}")
+    logger.debug(f"[schedule_service.py.find_common_availability] Preferred dates: {user_preferred_dates}, preferred times: {user_preferred_times}")
+    
     result = {}
     
     for date in user_preferred_dates:
@@ -77,10 +89,13 @@ def find_common_availability(
             matching_slots = [slot for slot in available_slots if slot in user_preferred_times]
             if matching_slots:
                 result[date] = matching_slots
+                logger.debug(f"[schedule_service.py.find_common_availability] Found {len(matching_slots)} matching slots for {date}")
         else:
             if available_slots:
                 result[date] = available_slots
+                logger.debug(f"[schedule_service.py.find_common_availability] Found {len(available_slots)} slots for {date}")
     
+    logger.info(f"[schedule_service.py.find_common_availability] Found common availability for {len(result)} dates")
     return result
 
 
@@ -94,13 +109,18 @@ def get_earliest_available_slot(provider_id: str) -> Optional[tuple]:
     Returns:
         Tuple of (date, time) or None if no slots available
     """
+    logger.info(f"[schedule_service.py.get_earliest_available_slot] Finding earliest slot for provider: {provider_id}")
+    
     schedules = get_provider_schedule(provider_id)
     
     for schedule in schedules:
         if schedule.available_slots:
             # Slots are already in chronological order
-            return (schedule.date, schedule.available_slots[0])
+            earliest_slot = (schedule.date, schedule.available_slots[0])
+            logger.info(f"[schedule_service.py.get_earliest_available_slot] Earliest slot: {earliest_slot}")
+            return earliest_slot
     
+    logger.warning(f"[schedule_service.py.get_earliest_available_slot] No available slots found for provider: {provider_id}")
     return None
 
 
@@ -114,6 +134,8 @@ def format_availability_message(availability: Dict[str, List[str]]) -> str:
     Returns:
         Formatted string
     """
+    logger.debug(f"[schedule_service.py.format_availability_message] Formatting availability for {len(availability)} dates")
+    
     if not availability:
         return "No available slots found."
     
@@ -135,4 +157,5 @@ def format_availability_message(availability: Dict[str, List[str]]) -> str:
         
         messages.append(f"{formatted_date}: {' | '.join(slot_parts)}")
     
+    logger.debug(f"[schedule_service.py.format_availability_message] Formatted message created")
     return "\n".join(messages)

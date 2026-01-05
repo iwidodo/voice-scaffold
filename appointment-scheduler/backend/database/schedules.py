@@ -1,11 +1,14 @@
 """
 Mock schedule database.
 """
+import logging
 from datetime import datetime, timedelta
 from typing import List, Dict
 from backend.models.schemas import Schedule
 from backend.models.constants import STANDARD_TIME_SLOTS
 import random
+
+logger = logging.getLogger(__name__)
 
 
 def generate_mock_schedule(provider_id: str, days_ahead: int = 14) -> List[Schedule]:
@@ -19,6 +22,8 @@ def generate_mock_schedule(provider_id: str, days_ahead: int = 14) -> List[Sched
     Returns:
         List of Schedule objects
     """
+    logger.info(f"[schedules.py.generate_mock_schedule] Generating mock schedule for provider: {provider_id}, days: {days_ahead}")
+    
     schedules = []
     today = datetime.now().date()
     
@@ -49,6 +54,7 @@ def generate_mock_schedule(provider_id: str, days_ahead: int = 14) -> List[Sched
     # Reset random seed
     random.seed()
     
+    logger.debug(f"[schedules.py.generate_mock_schedule] Generated {len(schedules)} schedule entries")
     return schedules
 
 
@@ -67,8 +73,12 @@ def get_provider_schedule(provider_id: str, days_ahead: int = 14) -> List[Schedu
     Returns:
         List of Schedule objects
     """
+    logger.debug(f"[schedules.py.get_provider_schedule] Getting schedule for provider: {provider_id}, days: {days_ahead}")
+    
     if provider_id not in _SCHEDULE_CACHE:
+        logger.debug(f"[schedules.py.get_provider_schedule] Schedule not in cache, generating for provider: {provider_id}")
         _SCHEDULE_CACHE[provider_id] = generate_mock_schedule(provider_id, days_ahead)
+    
     return _SCHEDULE_CACHE[provider_id]
 
 
@@ -83,10 +93,15 @@ def get_available_slots(provider_id: str, date: str) -> List[str]:
     Returns:
         List of available time slots
     """
+    logger.debug(f"[schedules.py.get_available_slots] Getting available slots for provider: {provider_id}, date: {date}")
+    
     schedules = get_provider_schedule(provider_id)
     for schedule in schedules:
         if schedule.date == date:
+            logger.debug(f"[schedules.py.get_available_slots] Found {len(schedule.available_slots)} slots for {date}")
             return schedule.available_slots
+    
+    logger.debug(f"[schedules.py.get_available_slots] No slots found for provider: {provider_id}, date: {date}")
     return []
 
 
@@ -102,17 +117,24 @@ def book_slot(provider_id: str, date: str, time: str) -> bool:
     Returns:
         True if booking successful, False otherwise
     """
+    logger.info(f"[schedules.py.book_slot] Booking slot for provider: {provider_id}, date: {date}, time: {time}")
+    
     if provider_id not in _SCHEDULE_CACHE:
+        logger.debug(f"[schedules.py.book_slot] Generating schedule for provider: {provider_id}")
         _SCHEDULE_CACHE[provider_id] = generate_mock_schedule(provider_id)
     
     schedules = _SCHEDULE_CACHE[provider_id]
     for schedule in schedules:
         if schedule.date == date and time in schedule.available_slots:
             schedule.available_slots.remove(time)
+            logger.info(f"[schedules.py.book_slot] Slot booked successfully: {date} at {time}")
             return True
+    
+    logger.warning(f"[schedules.py.book_slot] Failed to book slot - not available: {date} at {time}")
     return False
 
 
 def clear_schedule_cache():
     """Clear the schedule cache (useful for testing)."""
+    logger.info(f"[schedules.py.clear_schedule_cache] Clearing schedule cache ({len(_SCHEDULE_CACHE)} entries)")
     _SCHEDULE_CACHE.clear()

@@ -2,9 +2,12 @@
 Conversation state management for multi-turn conversations.
 """
 import uuid
+import logging
 from typing import Dict, List, Optional, Any, Union
 from backend.models.schemas import ConversationMessage, Provider, ProviderMatch
 from backend.models.constants import ConversationState
+
+logger = logging.getLogger(__name__)
 
 
 class ConversationManager:
@@ -14,6 +17,7 @@ class ConversationManager:
     
     def __init__(self):
         """Initialize conversation manager."""
+        logger.info("[conversation_manager.py.ConversationManager.__init__] Initializing conversation manager")
         self.conversations: Dict[str, Dict] = {}
     
     def create_conversation(self) -> str:
@@ -24,6 +28,8 @@ class ConversationManager:
             Conversation ID
         """
         conversation_id = str(uuid.uuid4())
+        logger.info(f"[conversation_manager.py.ConversationManager.create_conversation] Creating new conversation: {conversation_id}")
+        
         self.conversations[conversation_id] = {
             "id": conversation_id,
             "state": ConversationState.INITIAL,
@@ -47,7 +53,10 @@ class ConversationManager:
             content: Message content
         """
         if conversation_id not in self.conversations:
+            logger.error(f"[conversation_manager.py.ConversationManager.add_message] Conversation not found: {conversation_id}")
             raise ValueError(f"Conversation {conversation_id} not found")
+        
+        logger.debug(f"[conversation_manager.py.ConversationManager.add_message] Adding {role} message to conversation: {conversation_id}")
         
         self.conversations[conversation_id]["messages"].append({
             "role": role,
@@ -65,8 +74,12 @@ class ConversationManager:
             List of message dictionaries
         """
         if conversation_id not in self.conversations:
+            logger.warning(f"[conversation_manager.py.ConversationManager.get_messages] Conversation not found: {conversation_id}")
             return []
-        return self.conversations[conversation_id]["messages"]
+        
+        messages = self.conversations[conversation_id]["messages"]
+        logger.debug(f"[conversation_manager.py.ConversationManager.get_messages] Retrieved {len(messages)} messages for conversation: {conversation_id}")
+        return messages
     
     def get_state(self, conversation_id: str) -> str:
         """
@@ -79,8 +92,12 @@ class ConversationManager:
             Current state
         """
         if conversation_id not in self.conversations:
+            logger.warning(f"[conversation_manager.py.ConversationManager.get_state] Conversation not found: {conversation_id}, returning INITIAL state")
             return ConversationState.INITIAL
-        return self.conversations[conversation_id]["state"]
+        
+        state = self.conversations[conversation_id]["state"]
+        logger.debug(f"[conversation_manager.py.ConversationManager.get_state] State for conversation {conversation_id}: {state}")
+        return state
     
     def set_state(self, conversation_id: str, state: ConversationState):
         """
@@ -91,8 +108,12 @@ class ConversationManager:
             state: New state
         """
         if conversation_id not in self.conversations:
+            logger.error(f"[conversation_manager.py.ConversationManager.set_state] Conversation not found: {conversation_id}")
             raise ValueError(f"Conversation {conversation_id} not found")
+        
+        old_state = self.conversations[conversation_id]["state"]
         self.conversations[conversation_id]["state"] = state
+        logger.info(f"[conversation_manager.py.ConversationManager.set_state] Conversation {conversation_id} state changed: {old_state} -> {state}")
     
     def update_context(self, conversation_id: str, key: str, value: Any):
         """
@@ -104,7 +125,10 @@ class ConversationManager:
             value: Context value
         """
         if conversation_id not in self.conversations:
+            logger.error(f"[conversation_manager.py.ConversationManager.update_context] Conversation not found: {conversation_id}")
             raise ValueError(f"Conversation {conversation_id} not found")
+        
+        logger.debug(f"[conversation_manager.py.ConversationManager.update_context] Updating context for conversation {conversation_id}: {key}={value}")
         self.conversations[conversation_id]["context"][key] = value
     
     def get_context(self, conversation_id: str, key: Optional[str] = None) -> Optional[Union[str, Dict, Any]]:
@@ -119,11 +143,16 @@ class ConversationManager:
             Context value or entire context dict
         """
         if conversation_id not in self.conversations:
+            logger.warning(f"[conversation_manager.py.ConversationManager.get_context] Conversation not found: {conversation_id}")
             return None
         
         context = self.conversations[conversation_id]["context"]
         if key:
-            return context.get(key)
+            value = context.get(key)
+            logger.debug(f"[conversation_manager.py.ConversationManager.get_context] Retrieved context key '{key}' for conversation {conversation_id}: {value}")
+            return value
+        
+        logger.debug(f"[conversation_manager.py.ConversationManager.get_context] Retrieved full context for conversation {conversation_id}")
         return context
     
     def get_system_prompt(self, conversation_id: str) -> str:
@@ -137,6 +166,7 @@ class ConversationManager:
             System prompt string
         """
         state = self.get_state(conversation_id)
+        logger.debug(f"[conversation_manager.py.ConversationManager.get_system_prompt] Generating system prompt for conversation {conversation_id} in state: {state}")
         
         base_prompt = """You are a helpful medical appointment scheduling assistant.
 Your role is to:
