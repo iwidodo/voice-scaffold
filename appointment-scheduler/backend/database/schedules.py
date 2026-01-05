@@ -134,6 +134,14 @@ def book_slot(provider_id: str, date: str, time: str) -> bool:
         if schedule.date == date and time in schedule.available_slots:
             schedule.available_slots.remove(time)
             logger.info(f"[schedules.py.book_slot] Slot booked successfully: {date} at {time}")
+            
+            # Automatically save to CSV to persist the booking
+            save_result = save_schedules_to_csv()
+            if save_result:
+                logger.info(f"[schedules.py.book_slot] Booking persisted to CSV")
+            else:
+                logger.warning(f"[schedules.py.book_slot] Failed to persist booking to CSV")
+            
             return True
     
     logger.warning(f"[schedules.py.book_slot] Failed to book slot - not available: {date} at {time}")
