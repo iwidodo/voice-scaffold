@@ -144,6 +144,7 @@ if prompt := st.chat_input("Describe your health issue or ask a question..."):
         with st.spinner("Thinking..."):
             logger.debug("[streamlit_app.py.root] Sending message to backend")
             response_data = send_message(prompt)
+            logger.debug(f"[streamlit_app.py.root] Response data: {response_data}")
             
             if "error" in response_data:
                 error_message = f"❌ Error: {response_data['error']}"
@@ -160,8 +161,14 @@ if prompt := st.chat_input("Describe your health issue or ask a question..."):
                     logger.debug(f"[streamlit_app.py.root] Updated conversation_id: {st.session_state.conversation_id}")
                 
                 # Display assistant response
-                assistant_message = response_data.get("response", "I'm sorry, I couldn't process that.")
-                logger.info(f"[streamlit_app.py.root] Displaying assistant response")
+                assistant_message = response_data.get("response", "")
+                
+                # Handle empty response
+                if not assistant_message or assistant_message.strip() == "":
+                    logger.warning("[streamlit_app.py.root] Received empty response from backend")
+                    assistant_message = "I'm processing your request. Please give me a moment..."
+                
+                logger.info(f"[streamlit_app.py.root] Displaying assistant response (length: {len(assistant_message)})")
                 st.markdown(assistant_message)
                 
                 # Store message with metadata

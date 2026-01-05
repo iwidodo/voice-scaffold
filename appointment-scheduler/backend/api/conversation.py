@@ -127,6 +127,17 @@ async def handle_conversation(request: ConversationRequest):
         logger.debug("[conversation.py.handle_conversation] Getting final LLM response after function execution")
         final_response = llm_client.chat_completion(full_messages, tools=tools)
         assistant_content = llm_client.extract_message_content(final_response)
+        
+        # If content is empty after function calls, check if there are more tool calls
+        if not assistant_content and final_response.choices[0].message.tool_calls:
+            logger.warning("[conversation.py.handle_conversation] LLM made additional tool calls without text response")
+            # For now, return a message indicating processing
+            assistant_content = "I'm processing your request. Let me check the available options for you."
+        elif not assistant_content:
+            logger.warning("[conversation.py.handle_conversation] Empty response after function execution")
+            assistant_content = "I've processed your request. How else can I help you?"
+        
+        logger.info(f"[conversation.py.handle_conversation] Final assistant response length: {len(assistant_content)}")
     else:
         logger.debug("[conversation.py.handle_conversation] No tool calls, using direct response")
         assistant_content = llm_client.extract_message_content(response)

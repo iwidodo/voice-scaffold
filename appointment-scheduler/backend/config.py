@@ -19,7 +19,7 @@ class Config:
         
         # OpenAI
         self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-        self.OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        self.OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5-mini")
         
         # Application
         self.APP_NAME = "Appointment Scheduler API"
