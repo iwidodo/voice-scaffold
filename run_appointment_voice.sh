@@ -42,10 +42,20 @@ if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
 fi
 echo "✓ All dependencies installed"
 
+# Load .env file if it exists (try both locations)
+if [ -f ".env" ]; then
+    export $(grep -v '^#' .env | xargs)
+    echo "✓ Loaded .env from root directory"
+elif [ -f "appointment-scheduler/.env" ]; then
+    export $(grep -v '^#' appointment-scheduler/.env | xargs)
+    echo "✓ Loaded .env from appointment-scheduler directory"
+fi
+
 # Check for Deepgram API key
 if [ -z "$DEEPGRAM_API_KEY" ]; then
-    echo "⚠️  DEEPGRAM_API_KEY not set in environment"
-    echo "Please set it with: export DEEPGRAM_API_KEY='your-key'"
+    echo "⚠️  DEEPGRAM_API_KEY not set"
+    echo "Please add it to appointment-scheduler/.env or export it:"
+    echo "  export DEEPGRAM_API_KEY='your-key'"
     exit 1
 fi
 echo "✓ Deepgram API key found"

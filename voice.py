@@ -150,20 +150,28 @@ class Voice:
 
     def _play_audio(self, audio_bytes: bytes) -> None:
         """Play MP3 audio through speakers."""
-        try:
-            from pydub import AudioSegment
-            import simpleaudio as sa
-
-            audio = AudioSegment.from_mp3(io.BytesIO(audio_bytes))
-            play_obj = sa.play_buffer(
-                audio.raw_data,
-                num_channels=audio.channels,
-                bytes_per_sample=audio.sample_width,
-                sample_rate=audio.frame_rate,
-            )
-            play_obj.wait_done()
-        except ImportError:
-            raise ImportError(
-                "Audio playback requires pydub and simpleaudio. "
-                "Install with: pip install pydub simpleaudio"
-            )
+        import tempfile
+        import subprocess
+        import sys
+        
+        # Write audio to temporary file and play with system player
+        with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp_file:
+            tmp_file.write(audio_bytes)
+            tmp_file.flush()
+            
+            # Use platform-specific audio player
+            if sys.platform == 'darwin':  # macOS
+                subprocess.run(['afplay', tmp_file.name], check=True)
+            elif sys.platform == 'linux':
+                subprocess.run(['ffplay', '-nodisp', '-autoexit', tmp_file.name], 
+                             check=True, stderr=subprocess.DEVNULL)
+            elif sys.platform == 'win32':
+                subprocess.run(['powershell', '-c', 
+                              f'(New-Object Media.SoundPlayer "{tmp_file.name}").PlaySync()'],
+                             check=True)
+            
+            # Clean up temp file
+            try:
+                os.unlink(tmp_file.name)
+            except:
+                pass

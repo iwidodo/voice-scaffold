@@ -68,7 +68,7 @@ class VoiceAppointmentScheduler:
                     silent_chunks = 0
                 elif started_speaking:
                     silent_chunks += 1
-                    if silent_chunks > 20:  # About 1 second of silence
+                    if silent_chunks > 60:  # About 3 seconds of silence (increased from 1 second)
                         break
                 
                 # Max recording time safety
