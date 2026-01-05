@@ -17,11 +17,14 @@ Usage:
 import os
 import io
 from typing import Optional
+from pathlib import Path
 
 from deepgram import DeepgramClient
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load .env from current directory or appointment-scheduler subdirectory
+load_dotenv()  # Load from current directory first
+load_dotenv(Path(__file__).parent / "appointment-scheduler" / ".env")  # Also check subdirectory
 
 
 class Voice:
