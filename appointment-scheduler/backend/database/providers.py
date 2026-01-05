@@ -1,96 +1,63 @@
 """
-Mock provider database.
+CSV-based provider database.
+Loads provider data from CSV file on startup and maintains it in-memory for fast queries.
 """
 import logging
+import csv
+from pathlib import Path
 from typing import List, Optional
 from backend.models.schemas import Provider
-from backend.models.constants import Specialty
 
 logger = logging.getLogger(__name__)
 
-# Mock provider data
-PROVIDERS_DB = [
-    Provider(
-        id="p001",
-        name="Dr. Sarah Johnson",
-        specialty=Specialty.DERMATOLOGIST,
-        experience_years=15,
-        rating=4.8,
-        location="123 Medical Plaza, Suite 200"
-    ),
-    Provider(
-        id="p002",
-        name="Dr. Michael Chen",
-        specialty=Specialty.DERMATOLOGIST,
-        experience_years=8,
-        rating=4.6,
-        location="456 Healthcare Center, Floor 3"
-    ),
-    Provider(
-        id="p003",
-        name="Dr. Emily Rodriguez",
-        specialty=Specialty.CARDIOLOGIST,
-        experience_years=20,
-        rating=4.9,
-        location="789 Heart Institute, Building A"
-    ),
-    Provider(
-        id="p004",
-        name="Dr. David Kim",
-        specialty=Specialty.NEUROLOGIST,
-        experience_years=12,
-        rating=4.7,
-        location="321 Neurology Center, 2nd Floor"
-    ),
-    Provider(
-        id="p005",
-        name="Dr. Jennifer Williams",
-        specialty=Specialty.ORTHOPEDIST,
-        experience_years=18,
-        rating=4.8,
-        location="654 Orthopedic Clinic, Suite 100"
-    ),
-    Provider(
-        id="p006",
-        name="Dr. Robert Taylor",
-        specialty=Specialty.GENERAL_PRACTITIONER,
-        experience_years=25,
-        rating=4.5,
-        location="987 Family Health Center"
-    ),
-    Provider(
-        id="p007",
-        name="Dr. Lisa Anderson",
-        specialty=Specialty.PEDIATRICIAN,
-        experience_years=14,
-        rating=4.9,
-        location="147 Children's Medical Center"
-    ),
-    Provider(
-        id="p008",
-        name="Dr. James Martinez",
-        specialty=Specialty.PSYCHIATRIST,
-        experience_years=16,
-        rating=4.7,
-        location="258 Mental Health Associates"
-    ),
-    Provider(
-        id="p009",
-        name="Dr. Patricia Brown",
-        specialty=Specialty.OPHTHALMOLOGIST,
-        experience_years=22,
-        rating=4.8,
-        location="369 Vision Care Center"
-    ),
-    Provider(
-        id="p010",
-        name="Dr. Christopher Lee",
-        specialty=Specialty.ENT_SPECIALIST,
-        experience_years=10,
-        rating=4.6,
-        location="741 ENT Clinic, Suite 300"
-    ),
-]
+# In-memory provider database (loaded from CSV)
+PROVIDERS_DB: List[Provider] = []
+
+# Path to the CSV file
+CSV_FILE = Path(__file__).parent / "providers.csv"
+
+
+def load_providers_from_csv() -> List[Provider]:
+    """
+    Load providers from CSV file.
+    
+    Returns:
+        List of Provider objects
+    """
+    providers = []
+    
+    try:
+        with open(CSV_FILE, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                provider = Provider(
+                    id=row['id'],
+                    name=row['name'],
+                    specialty=row['specialty'],
+                    experience_years=int(row['experience_years']),
+                    rating=float(row['rating']),
+                    location=row['location']
+                )
+                providers.append(provider)
+        
+        logger.info(f"[providers.py.load_providers_from_csv] Loaded {len(providers)} providers from CSV")
+    except FileNotFoundError:
+        logger.error(f"[providers.py.load_providers_from_csv] CSV file not found: {CSV_FILE}")
+    except Exception as e:
+        logger.error(f"[providers.py.load_providers_from_csv] Error loading CSV: {e}")
+    
+    return providers
+
+
+def initialize_database():
+    """Initialize the provider database by loading from CSV."""
+    global PROVIDERS_DB
+    PROVIDERS_DB = load_providers_from_csv()
+    logger.info(f"[providers.py.initialize_database] Database initialized with {len(PROVIDERS_DB)} providers")
+
+
+# Initialize on module load
+initialize_database()
 
 
 def get_all_providers() -> List[Provider]:

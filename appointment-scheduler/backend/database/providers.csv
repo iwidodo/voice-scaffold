@@ -1,0 +1,11 @@
+id,name,specialty,experience_years,rating,location
+p001,Dr. Sarah Johnson,Dermatologist,15,4.8,"123 Medical Plaza, Suite 200"
+p002,Dr. Michael Chen,Dermatologist,8,4.6,"456 Healthcare Center, Floor 3"
+p003,Dr. Emily Rodriguez,Cardiologist,20,4.9,"789 Heart Institute, Building A"
+p004,Dr. David Kim,Neurologist,12,4.7,"321 Neurology Center, 2nd Floor"
+p005,Dr. Jennifer Williams,Orthopedist,18,4.8,"654 Orthopedic Clinic, Suite 100"
+p006,Dr. Robert Taylor,General Practitioner,25,4.5,987 Family Health Center
+p007,Dr. Lisa Anderson,Pediatrician,14,4.9,147 Children's Medical Center
+p008,Dr. James Martinez,Psychiatrist,16,4.7,258 Mental Health Associates
+p009,Dr. Patricia Brown,Ophthalmologist,22,4.8,369 Vision Care Center
+p010,Dr. Christopher Lee,ENT Specialist,10,4.6,"741 ENT Clinic, Suite 300"

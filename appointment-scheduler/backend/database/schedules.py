@@ -1,65 +1,69 @@
 """
-Mock schedule database.
+CSV-based schedule database.
+Loads schedule data from CSV file on startup and maintains it in-memory for fast queries.
 """
 import logging
-from datetime import datetime, timedelta
+import csv
+from pathlib import Path
 from typing import List, Dict
 from backend.models.schemas import Schedule
-from backend.models.constants import STANDARD_TIME_SLOTS
-import random
 
 logger = logging.getLogger(__name__)
 
+# In-memory schedule database (loaded from CSV)
+# Structure: {provider_id: [Schedule, Schedule, ...]}
+SCHEDULES_DB: Dict[str, List[Schedule]] = {}
 
-def generate_mock_schedule(provider_id: str, days_ahead: int = 14) -> List[Schedule]:
+# Path to the CSV file
+CSV_FILE = Path(__file__).parent / "schedules.csv"
+
+
+def load_schedules_from_csv() -> Dict[str, List[Schedule]]:
     """
-    Generate mock schedule data for a provider.
+    Load schedules from CSV file.
     
-    Args:
-        provider_id: Provider ID
-        days_ahead: Number of days to generate schedules for
-        
     Returns:
-        List of Schedule objects
+        Dictionary mapping provider_id to list of Schedule objects
     """
-    logger.info(f"[schedules.py.generate_mock_schedule] Generating mock schedule for provider: {provider_id}, days: {days_ahead}")
+    schedules_dict: Dict[str, List[Schedule]] = {}
     
-    schedules = []
-    today = datetime.now().date()
-    
-    # Use provider_id as seed for consistent but varied schedules per provider
-    random.seed(hash(provider_id))
-    
-    for day_offset in range(1, days_ahead + 1):
-        date = today + timedelta(days=day_offset)
-        date_str = date.strftime("%Y-%m-%d")
+    try:
+        with open(CSV_FILE, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                # Parse time slots from comma-separated string
+                time_slots = [slot.strip() for slot in row['time_slots'].split(',')]
+                
+                schedule = Schedule(
+                    provider_id=row['provider_id'],
+                    date=row['date'],
+                    available_slots=time_slots
+                )
+                
+                # Group schedules by provider_id
+                if schedule.provider_id not in schedules_dict:
+                    schedules_dict[schedule.provider_id] = []
+                schedules_dict[schedule.provider_id].append(schedule)
         
-        # Skip weekends for simplicity
-        if date.weekday() >= 5:
-            continue
-        
-        # Randomly remove some slots to simulate bookings (but keep most slots available)
-        available_slots = STANDARD_TIME_SLOTS.copy()
-        num_booked = random.randint(2, 4)  # Book fewer slots
-        for _ in range(num_booked):
-            if available_slots:
-                available_slots.pop(random.randint(0, len(available_slots) - 1))
-        
-        schedules.append(Schedule(
-            provider_id=provider_id,
-            date=date_str,
-            available_slots=available_slots
-        ))
+        total_schedules = sum(len(schedules) for schedules in schedules_dict.values())
+        logger.info(f"[schedules.py.load_schedules_from_csv] Loaded {total_schedules} schedule entries for {len(schedules_dict)} providers")
+    except FileNotFoundError:
+        logger.error(f"[schedules.py.load_schedules_from_csv] CSV file not found: {CSV_FILE}")
+    except Exception as e:
+        logger.error(f"[schedules.py.load_schedules_from_csv] Error loading CSV: {e}")
     
-    # Reset random seed
-    random.seed()
-    
-    logger.debug(f"[schedules.py.generate_mock_schedule] Generated {len(schedules)} schedule entries")
-    return schedules
+    return schedules_dict
 
 
-# Cache for generated schedules
-_SCHEDULE_CACHE: Dict[str, List[Schedule]] = {}
+def initialize_database():
+    """Initialize the schedule database by loading from CSV."""
+    global SCHEDULES_DB
+    SCHEDULES_DB = load_schedules_from_csv()
+    logger.info(f"[schedules.py.initialize_database] Database initialized with schedules for {len(SCHEDULES_DB)} providers")
+
+
+# Initialize on module load
+initialize_database()
 
 
 def get_provider_schedule(provider_id: str, days_ahead: int = 14) -> List[Schedule]:
@@ -68,18 +72,20 @@ def get_provider_schedule(provider_id: str, days_ahead: int = 14) -> List[Schedu
     
     Args:
         provider_id: Provider ID
-        days_ahead: Number of days to look ahead
+        days_ahead: Number of days to look ahead (not used with CSV data, but kept for API compatibility)
         
     Returns:
         List of Schedule objects
     """
-    logger.debug(f"[schedules.py.get_provider_schedule] Getting schedule for provider: {provider_id}, days: {days_ahead}")
+    logger.debug(f"[schedules.py.get_provider_schedule] Getting schedule for provider: {provider_id}")
     
-    if provider_id not in _SCHEDULE_CACHE:
-        logger.debug(f"[schedules.py.get_provider_schedule] Schedule not in cache, generating for provider: {provider_id}")
-        _SCHEDULE_CACHE[provider_id] = generate_mock_schedule(provider_id, days_ahead)
+    if provider_id in SCHEDULES_DB:
+        schedules = SCHEDULES_DB[provider_id]
+        logger.debug(f"[schedules.py.get_provider_schedule] Found {len(schedules)} schedule entries")
+        return schedules
     
-    return _SCHEDULE_CACHE[provider_id]
+    logger.warning(f"[schedules.py.get_provider_schedule] No schedules found for provider: {provider_id}")
+    return []
 
 
 def get_available_slots(provider_id: str, date: str) -> List[str]:
@@ -119,11 +125,11 @@ def book_slot(provider_id: str, date: str, time: str) -> bool:
     """
     logger.info(f"[schedules.py.book_slot] Booking slot for provider: {provider_id}, date: {date}, time: {time}")
     
-    if provider_id not in _SCHEDULE_CACHE:
-        logger.debug(f"[schedules.py.book_slot] Generating schedule for provider: {provider_id}")
-        _SCHEDULE_CACHE[provider_id] = generate_mock_schedule(provider_id)
+    if provider_id not in SCHEDULES_DB:
+        logger.warning(f"[schedules.py.book_slot] Provider not found in database: {provider_id}")
+        return False
     
-    schedules = _SCHEDULE_CACHE[provider_id]
+    schedules = SCHEDULES_DB[provider_id]
     for schedule in schedules:
         if schedule.date == date and time in schedule.available_slots:
             schedule.available_slots.remove(time)
@@ -135,6 +141,35 @@ def book_slot(provider_id: str, date: str, time: str) -> bool:
 
 
 def clear_schedule_cache():
-    """Clear the schedule cache (useful for testing)."""
-    logger.info(f"[schedules.py.clear_schedule_cache] Clearing schedule cache ({len(_SCHEDULE_CACHE)} entries)")
-    _SCHEDULE_CACHE.clear()
+    """
+    Clear the schedule cache and reload from CSV (useful for testing).
+    """
+    logger.info(f"[schedules.py.clear_schedule_cache] Reloading schedules from CSV")
+    initialize_database()
+
+
+def save_schedules_to_csv():
+    """
+    Save the current in-memory schedules back to CSV file.
+    This allows for persistence of booked appointments.
+    """
+    try:
+        with open(CSV_FILE, 'w', encoding='utf-8', newline='') as f:
+            fieldnames = ['provider_id', 'date', 'time_slots', 'is_available']
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            
+            for provider_id, schedules in sorted(SCHEDULES_DB.items()):
+                for schedule in sorted(schedules, key=lambda s: s.date):
+                    writer.writerow({
+                        'provider_id': schedule.provider_id,
+                        'date': schedule.date,
+                        'time_slots': ','.join(schedule.available_slots),
+                        'is_available': '1'
+                    })
+        
+        logger.info(f"[schedules.py.save_schedules_to_csv] Saved schedules to CSV")
+        return True
+    except Exception as e:
+        logger.error(f"[schedules.py.save_schedules_to_csv] Error saving CSV: {e}")
+        return False
