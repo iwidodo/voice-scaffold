@@ -54,6 +54,11 @@ def get_function_tools():
                             "items": {"type": "string"},
                             "description": "Optional list of preferred dates in YYYY-MM-DD format"
                         },
+                        "time_preference": {
+                            "type": "string",
+                            "enum": ["morning", "afternoon", "any"],
+                            "description": "Time of day preference: 'morning' (before 12 PM), 'afternoon' (12 PM or later), or 'any'"
+                        },
                         "num_days": {
                             "type": "integer",
                             "description": "Number of days to look ahead (default: 7)"

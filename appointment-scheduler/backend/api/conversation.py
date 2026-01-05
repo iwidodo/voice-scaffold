@@ -214,19 +214,40 @@ async def execute_function(
     elif function_name == "check_availability":
         provider_id = arguments.get("provider_id")
         num_days = arguments.get("num_days", 7)
+        time_preference = arguments.get("time_preference", "any")
         
-        logger.info(f"[conversation.py.execute_function] Checking availability for provider: {provider_id}, days: {num_days}")
+        logger.info(f"[conversation.py.execute_function] Checking availability for provider: {provider_id}, days: {num_days}, time_preference: {time_preference}")
         
         # Get availability
         availability = get_availability_summary(provider_id, num_days)
+        
+        # Filter by time preference if specified
+        if time_preference and time_preference != "any":
+            filtered_availability = {}
+            for date, slots in availability.items():
+                filtered_slots = []
+                for slot in slots:
+                    hour = int(slot.split(":")[0])
+                    if time_preference == "morning" and hour < 12:
+                        filtered_slots.append(slot)
+                    elif time_preference == "afternoon" and hour >= 12:
+                        filtered_slots.append(slot)
+                
+                if filtered_slots:
+                    filtered_availability[date] = filtered_slots
+            
+            availability = filtered_availability
+            logger.debug(f"[conversation.py.execute_function] Filtered to {len(availability)} dates with {time_preference} slots")
         
         if not availability:
             logger.warning(f"[conversation.py.execute_function] No available slots found for provider: {provider_id}")
             provider = get_provider_by_id(provider_id)
             provider_name = provider.name if provider else "this provider"
+            
+            time_msg = f" in the {time_preference}" if time_preference != "any" else ""
             return {
                 "error": "No available slots found",
-                "message": f"I apologize, but {provider_name} doesn't have any available appointment slots in the next {num_days} days. Would you like me to check availability for a different time period, or would you prefer to see another provider with the same specialty?",
+                "message": f"I apologize, but {provider_name} doesn't have any available appointment slots{time_msg} in the next {num_days} days. Would you like me to check availability for a different time period, or would you prefer to see another provider with the same specialty?",
                 "provider_id": provider_id
             }
         

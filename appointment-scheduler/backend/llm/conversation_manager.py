@@ -165,10 +165,20 @@ class ConversationManager:
         Returns:
             System prompt string
         """
+        from datetime import datetime
+        
         state = self.get_state(conversation_id)
         logger.debug(f"[conversation_manager.py.ConversationManager.get_system_prompt] Generating system prompt for conversation {conversation_id} in state: {state}")
         
-        base_prompt = """You are a helpful medical appointment scheduling assistant.
+        # Get current date and time
+        now = datetime.now()
+        current_date = now.strftime("%A, %B %d, %Y")  # e.g., "Monday, January 06, 2026"
+        current_time = now.strftime("%I:%M %p")  # e.g., "02:30 PM"
+        
+        base_prompt = f"""You are a helpful medical appointment scheduling assistant.
+
+CURRENT DATE AND TIME: {current_date} at {current_time}
+
 Your role is to:
 1. Understand the patient's health issue
 2. Match them with the appropriate healthcare provider
@@ -182,6 +192,8 @@ Use the provided functions to:
 - create_appointment: Book the appointment once all details are confirmed
 
 IMPORTANT: 
+- Use the CURRENT DATE AND TIME above to understand relative dates like "tomorrow", "next week", "Wednesday", etc.
+- When checking availability, call check_availability with num_days parameter to look ahead the appropriate number of days.
 - If a function returns an error (like no providers available or no time slots), you MUST communicate this clearly to the user.
 - Never stay silent when a function call fails or returns no results.
 - If no providers are available for a specialty, apologize and suggest alternatives (like seeing a General Practitioner).
