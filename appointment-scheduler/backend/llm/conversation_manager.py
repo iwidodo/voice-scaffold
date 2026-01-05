@@ -2,7 +2,7 @@
 Conversation state management for multi-turn conversations.
 """
 import uuid
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any, Union
 from backend.models.schemas import ConversationMessage, Provider, ProviderMatch
 from backend.models.constants import ConversationState
 
@@ -94,7 +94,7 @@ class ConversationManager:
             raise ValueError(f"Conversation {conversation_id} not found")
         self.conversations[conversation_id]["state"] = state
     
-    def update_context(self, conversation_id: str, key: str, value: any):
+    def update_context(self, conversation_id: str, key: str, value: Any):
         """
         Update conversation context with a key-value pair.
         
@@ -107,7 +107,7 @@ class ConversationManager:
             raise ValueError(f"Conversation {conversation_id} not found")
         self.conversations[conversation_id]["context"][key] = value
     
-    def get_context(self, conversation_id: str, key: str = None) -> any:
+    def get_context(self, conversation_id: str, key: Optional[str] = None) -> Optional[Union[str, Dict, Any]]:
         """
         Get conversation context.
         

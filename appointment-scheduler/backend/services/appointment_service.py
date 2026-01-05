@@ -2,7 +2,7 @@
 Appointment service for creating appointments and generating .ics files.
 """
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 from icalendar import Calendar, Event
 from backend.models.schemas import Appointment, AppointmentCreate, AppointmentConfirmation
@@ -78,13 +78,11 @@ def generate_ics_file(appointment: Appointment) -> bytes:
     time_obj = datetime.strptime(appointment.time, "%H:%M").time()
     start_datetime = datetime.combine(date_obj, time_obj)
     
-    # Assume 30-minute appointments
-    end_datetime = start_datetime.replace(
-        minute=start_datetime.minute + 30 if start_datetime.minute < 30 else 0,
-        hour=start_datetime.hour if start_datetime.minute < 30 else start_datetime.hour + 1
-    )
-    
     event.add('dtstart', start_datetime)
+    
+    # Assume 30-minute appointments - use timedelta for proper calculation
+    end_datetime = start_datetime + timedelta(minutes=30)
+    
     event.add('dtend', end_datetime)
     event.add('dtstamp', datetime.now())
     
