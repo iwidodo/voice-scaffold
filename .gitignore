@@ -27,3 +27,7 @@ __pycache__/
 .env.local
 .env.development.local
 .env.test.local
+venv/
+*.ics
+.coverage
+htmlcov/
